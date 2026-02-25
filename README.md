@@ -1,310 +1,257 @@
-# Data Center Monitoring System
-Cloud Deployment on Google Cloud Platform
+# ☁️ Cloud Deployment — Data Center Monitoring Application
 
-------------------------------------------------------------
-PROJECT OVERVIEW
-------------------------------------------------------------
+This repository documents the end-to-end deployment of a data center monitoring application on **Google Cloud Platform**.  
+The deployment covers infrastructure provisioning, backend and frontend setup, reverse proxy configuration, security implementation, and monitoring.
 
-This project documents the full production-style deployment of a
-Data Center Monitoring System on Google Cloud Platform (GCP).
+---
 
-The system consists of:
+## 🧭 Overview
 
-- Frontend Dashboard (Static Build - TailAdmin UI)
-- Backend API (Strapi - Node.js)
-- Database Layer (Cloud SQL - MySQL 8.0)
-- Reverse Proxy (NGINX)
-- Process Manager (PM2)
-- Monitoring and Alerting (Google Cloud Monitoring + Ops Agent)
-- HTTPS Security (Certbot)
+The objective of this deployment is to provide an online monitoring dashboard that improves accessibility, scalability, and centralized system management.  
+The application is hosted on a cloud virtual machine and exposed securely via HTTPS.
 
-The architecture follows a Two-Tier Cloud Design where the
-application layer and database layer are separated to improve
-scalability, reliability, and maintainability.
+---
 
-------------------------------------------------------------
-LIVE DEPLOYMENT
-------------------------------------------------------------
+## 🧱 Technology Stack
 
-Frontend (Production HTTPS Domain)
-https://ds-datacenter.my.id/
+- Google Cloud Platform — Compute Engine  
+- Ubuntu Server  
+- Node.js  
+- Strapi (Backend API)  
+- React / TailAdmin (Frontend Dashboard)  
+- Nginx (Reverse Proxy)  
+- Let’s Encrypt (SSL)  
+- PM2 (Process Manager)
 
-Backend Admin Panel
-http://34.101.201.82:1337/dashboard
+---
 
-------------------------------------------------------------
-SYSTEM ARCHITECTURE
-------------------------------------------------------------
+## ☁️ Infrastructure Provisioning
 
-User
-  ->
-HTTPS (NGINX Reverse Proxy)
-  ->
-Frontend (Static Build)
-  ->
-Backend (Strapi - Port 1337)
-  ->
-Cloud SQL (MySQL 8.0)
+### Create Virtual Machine
+- OS: Ubuntu 22.04 LTS  
+- Machine Type: e2-micro (or equivalent)  
+- Allow HTTP and HTTPS traffic  
+- Configure static external IP (recommended)
 
-Architecture Type  : Two-Tier
-Compute Layer      : Google Compute Engine
-Database Layer     : Cloud SQL (Managed Service)
+Connect using SSH:
 
-------------------------------------------------------------
-INFRASTRUCTURE SPECIFICATION
-------------------------------------------------------------
+```bash
+gcloud compute ssh <vm-name>
+```
 
-VM Name       : strapi-data-center
-Machine Type  : e2-small
-vCPU          : 2
-Memory        : 2 GB
-OS            : Ubuntu 22.04 LTS
-Region        : asia-southeast2-a
-IP Type       : Static External IP
-Database      : Cloud SQL MySQL 8.0
+---
 
-------------------------------------------------------------
-FULL DEPLOYMENT PROCESS
-------------------------------------------------------------
+## ⚙️ Server Preparation
 
-STEP 1 – CREATE VM INSTANCE (CLI)
+Update packages:
 
-gcloud compute instances create strapi-data-center \
-  --machine-type=e2-small \
-  --zone=asia-southeast2-a \
-  --image-family=ubuntu-2204-lts \
-  --image-project=ubuntu-os-cloud
-
-Open firewall rules:
-
-gcloud compute firewall-rules create allow-http --allow tcp:80
-gcloud compute firewall-rules create allow-https --allow tcp:443
-gcloud compute firewall-rules create allow-backend --allow tcp:1337
-
-Connect via SSH:
-
-gcloud compute ssh strapi-data-center --zone=asia-southeast2-a
-
-------------------------------------------------------------
-
-STEP 2 – SERVER ENVIRONMENT SETUP
-
+```bash
 sudo apt update && sudo apt upgrade -y
-
-Install Node.js (LTS)
-
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install nodejs -y
-
-Install required packages:
-
-sudo apt install git nginx -y
-sudo npm install -g pm2
-
-Enable NGINX:
-
-sudo systemctl enable nginx
-sudo systemctl start nginx
-
-------------------------------------------------------------
-
-STEP 3 – CREATE CLOUD SQL (MySQL 8.0)
-
-1. Open Google Cloud Console
-2. Navigate to SQL
-3. Create MySQL 8.0 instance
-4. Select same region as VM
-5. Enable Public IP
-6. Add VM external IP to Authorized Networks
-7. Create database: datacenter_db
-8. Create application user
-
-This ensures database isolation and managed reliability.
-
-------------------------------------------------------------
-
-STEP 4 – BACKEND DEPLOYMENT (STRAPI)
-
-Clone backend repository:
-
-git clone https://github.com/your-username/backend-repo.git
-cd backend-repo
+```
 
 Install dependencies:
 
+```bash
+sudo apt install nodejs npm nginx git -y
+```
+
+Install process manager:
+
+```bash
+sudo npm install -g pm2
+```
+
+Verify:
+
+```bash
+node -v
+npm -v
+nginx -v
+```
+
+---
+
+## 🚀 Backend Deployment (Strapi)
+
+Clone backend:
+
+```bash
+git clone <backend-repository>
+cd backend
+```
+
+Install dependencies:
+
+```bash
 npm install
+```
 
-Create .env file:
+Build and start:
 
+```bash
+npm run build
+pm2 start npm --name backend -- start
+pm2 save
+```
+
+Example environment configuration:
+
+```env
 HOST=0.0.0.0
 PORT=1337
-DATABASE_CLIENT=mysql
-DATABASE_HOST=CLOUD_SQL_IP
-DATABASE_PORT=3306
-DATABASE_NAME=datacenter_db
-DATABASE_USERNAME=your_user
-DATABASE_PASSWORD=your_password
-JWT_SECRET=your_secret
+NODE_ENV=production
+```
 
-Build backend:
+---
 
-npm run build
+## 🌐 Frontend Deployment
 
-Run with PM2:
+Clone frontend:
 
-pm2 start npm --name "datacenter-backend" -- start
-pm2 startup
-pm2 save
+```bash
+git clone <frontend-repository>
+cd frontend
+```
 
-Backend now runs on port 1337.
+Install and build:
 
-------------------------------------------------------------
-
-STEP 5 – FRONTEND DEPLOYMENT
-
-Clone frontend repository:
-
-git clone https://github.com/your-username/frontend-repo.git
-cd frontend-repo
-
-Install dependencies:
-
+```bash
 npm install
-
-Build production:
-
 npm run build
+```
 
 Deploy static build:
 
-sudo cp -r dist/* /usr/share/nginx/html/
+```bash
+sudo mkdir -p /var/www/app
+sudo cp -r build/* /var/www/app
+```
 
-Restart NGINX:
+---
 
-sudo systemctl restart nginx
+## 🔁 Nginx Reverse Proxy
 
-------------------------------------------------------------
+Create configuration:
 
-STEP 6 – NGINX REVERSE PROXY CONFIGURATION
+```bash
+sudo nano /etc/nginx/sites-available/app
+```
 
-Create configuration file:
+Example:
 
-sudo nano /etc/nginx/sites-available/datacenter
-
+```nginx
 server {
-    listen 80;
-    server_name ds-datacenter.my.id;
+  server_name example.com;
 
-    location / {
-        root /usr/share/nginx/html;
-        index index.html;
-        try_files $uri /index.html;
-    }
+  location / {
+    root /var/www/app;
+    index index.html;
+    try_files $uri /index.html;
+  }
 
-    location /api {
-        proxy_pass http://localhost:1337;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-    }
+  location /api/ {
+    proxy_pass http://localhost:1337;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+  }
 }
+```
 
-Enable configuration:
+Enable site:
 
-sudo ln -s /etc/nginx/sites-available/datacenter /etc/nginx/sites-enabled/
-
-Test configuration:
-
+```bash
+sudo ln -s /etc/nginx/sites-available/app /etc/nginx/sites-enabled/
 sudo nginx -t
-
-Restart:
-
 sudo systemctl restart nginx
+```
 
-------------------------------------------------------------
+---
 
-STEP 7 – ENABLE HTTPS (SSL)
+## 🔐 Security — SSL Setup
 
 Install Certbot:
 
+```bash
 sudo apt install certbot python3-certbot-nginx -y
+```
 
 Generate certificate:
 
-sudo certbot --nginx -d ds-datacenter.my.id
+```bash
+sudo certbot --nginx -d example.com
+```
 
-Choose automatic redirect from HTTP to HTTPS.
+Test renewal:
 
-------------------------------------------------------------
+```bash
+sudo certbot renew --dry-run
+```
 
-STEP 8 – MONITORING AND RELIABILITY
+---
 
-Install Google Cloud Ops Agent:
+## 📊 Monitoring & Observability
 
-curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
-sudo bash add-google-cloud-ops-agent-repo.sh --also-install
+Check running services:
 
-Monitoring includes:
-- CPU utilization
-- Memory usage
-- Disk usage
+```bash
+pm2 status
+```
 
-Create Uptime Check:
-- Target: https://ds-datacenter.my.id
-- Interval: 1 minute
-- Configure alert policy
-- Add email notification
+View logs:
 
-Backend stability ensured using PM2 automatic restart.
+```bash
+pm2 logs
+```
 
-------------------------------------------------------------
-APPLICATION SCREENSHOTS
-------------------------------------------------------------
+Monitor server resources:
 
-Frontend – Data Center Dashboard
+```bash
+htop
+```
 
-<img width="1919" height="980" alt="image" src="https://github.com/user-attachments/assets/8f75cc9e-25b8-42af-973d-b4e004de9909" />
+Suggested metrics:
+- CPU usage  
+- Memory consumption  
+- Disk capacity  
+- Application uptime
 
+---
 
-Backend – Strapi Admin Panel
+## 🧪 Verification Checklist
 
-<img width="1919" height="982" alt="image" src="https://github.com/user-attachments/assets/0a995d2f-dd37-4126-8c23-bb55ba41cd58" />
+- Frontend accessible via domain  
+- Backend API responding  
+- HTTPS active  
+- Dashboard functional  
+- Services running via PM2  
 
+---
 
-Make sure screenshots are stored in:
+## 📚 Documentation Strategy
 
-project-root/
-  └── screenshots/
-      ├── frontend-dashboard.png
-      └── backend-login.png
+All deployment steps, configuration details, and troubleshooting notes are recorded to ensure reproducibility and support long-term maintenance.
 
-------------------------------------------------------------
-SECURITY CONFIGURATION
-------------------------------------------------------------
+---
 
-- HTTPS enabled on production domain
-- Firewall rules configured
-- Cloud SQL authorized network restricted
-- Backend protected behind reverse proxy
-- Process isolation using PM2
+## ✅ Implementation Result
 
-------------------------------------------------------------
-PROJECT SUMMARY
-------------------------------------------------------------
+The data center monitoring application is successfully deployed on cloud infrastructure and accessible through a secure HTTPS connection.  
+The system enables centralized monitoring and supports scalable future development.
 
-This project demonstrates a complete cloud deployment of a
-Data Center Monitoring System using Google Cloud Platform.
+---
 
-Key achievements:
+## 🔮 Future Improvements
 
-- Two-tier cloud architecture implementation
-- Managed Cloud SQL integration
-- Secure HTTPS-enabled production domain
-- Reverse proxy configuration with NGINX
-- Backend process management using PM2
-- Real-time monitoring and uptime alerting
-- Stable system performance under current workload
+- Containerization using Docker  
+- CI/CD pipeline integration  
+- Advanced monitoring and alerting  
+- Horizontal scaling architecture  
 
-The deployment reflects practical cloud engineering skills including
-infrastructure provisioning, system configuration, backend deployment,
-reverse proxy setup, database integration, monitoring implementation,
-and production hardening practices.
+---
+
+## 👤 Author
+
+Dicky Saputra  
+Informatics — Universitas Sultan Ageng Tirtayasa
