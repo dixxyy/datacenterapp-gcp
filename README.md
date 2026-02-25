@@ -1,14 +1,14 @@
 # ☁️ Cloud Deployment — Data Center Monitoring Application
 
-This repository documents the end-to-end deployment of a data center monitoring application on **Google Cloud Platform**.  
-The deployment covers infrastructure provisioning, backend and frontend setup, reverse proxy configuration, security implementation, and monitoring.
+This repository documents the end-to-end setup and deployment of a data center monitoring application on **Google Cloud Platform (GCP)**.  
+It covers local development, cloud infrastructure provisioning, backend and frontend deployment, reverse proxy configuration, security implementation, and monitoring.
 
 ---
 
 ## 🧭 Overview
 
-The objective of this deployment is to provide an online monitoring dashboard that improves accessibility, scalability, and centralized system management.  
-The application is hosted on a cloud virtual machine and exposed securely via HTTPS.
+The project aims to provide an online dashboard for monitoring data center resources.  
+By leveraging cloud infrastructure, the system improves accessibility, scalability, and centralized management.
 
 ---
 
@@ -20,20 +20,88 @@ The application is hosted on a cloud virtual machine and exposed securely via HT
 - Strapi (Backend API)  
 - React / TailAdmin (Frontend Dashboard)  
 - Nginx (Reverse Proxy)  
-- Let’s Encrypt (SSL)  
+- Let’s Encrypt SSL  
 - PM2 (Process Manager)
 
 ---
 
-## ☁️ Infrastructure Provisioning
+## 📥 Getting Started — Clone & Run Locally
 
-### Create Virtual Machine
-- OS: Ubuntu 22.04 LTS  
-- Machine Type: e2-micro (or equivalent)  
-- Allow HTTP and HTTPS traffic  
+This section allows developers to run the application locally before deploying to the cloud.
+
+### Clone Backend
+
+```bash
+git clone <backend-repository>
+cd backend
+npm install
+```
+
+Run development server:
+
+```bash
+npm run develop
+```
+
+Build production:
+
+```bash
+npm run build
+npm start
+```
+
+---
+
+### Clone Frontend
+
+```bash
+git clone <frontend-repository>
+cd frontend
+npm install
+```
+
+Run development:
+
+```bash
+npm run dev
+```
+
+Build production:
+
+```bash
+npm run build
+```
+
+---
+
+### Environment Variables
+
+Backend example:
+
+```env
+HOST=0.0.0.0
+PORT=1337
+NODE_ENV=development
+```
+
+Frontend example:
+
+```env
+VITE_API_URL=http://localhost:1337/api
+```
+
+---
+
+## ☁️ Infrastructure Provisioning (GCP)
+
+Create a virtual machine:
+
+- Ubuntu 22.04 LTS  
+- e2-micro (or equivalent)  
+- Allow HTTP & HTTPS  
 - Configure static external IP (recommended)
 
-Connect using SSH:
+Connect via SSH:
 
 ```bash
 gcloud compute ssh <vm-name>
@@ -43,7 +111,7 @@ gcloud compute ssh <vm-name>
 
 ## ⚙️ Server Preparation
 
-Update packages:
+Update system:
 
 ```bash
 sudo apt update && sudo apt upgrade -y
@@ -55,13 +123,13 @@ Install dependencies:
 sudo apt install nodejs npm nginx git -y
 ```
 
-Install process manager:
+Install PM2:
 
 ```bash
 sudo npm install -g pm2
 ```
 
-Verify:
+Verify installation:
 
 ```bash
 node -v
@@ -71,30 +139,18 @@ nginx -v
 
 ---
 
-## 🚀 Backend Deployment (Strapi)
-
-Clone backend:
+## 🚀 Backend Deployment (Cloud)
 
 ```bash
 git clone <backend-repository>
 cd backend
-```
-
-Install dependencies:
-
-```bash
 npm install
-```
-
-Build and start:
-
-```bash
 npm run build
 pm2 start npm --name backend -- start
 pm2 save
 ```
 
-Example environment configuration:
+Example production env:
 
 ```env
 HOST=0.0.0.0
@@ -104,18 +160,11 @@ NODE_ENV=production
 
 ---
 
-## 🌐 Frontend Deployment
-
-Clone frontend:
+## 🌐 Frontend Deployment (Cloud)
 
 ```bash
 git clone <frontend-repository>
 cd frontend
-```
-
-Install and build:
-
-```bash
 npm install
 npm run build
 ```
@@ -131,7 +180,7 @@ sudo cp -r build/* /var/www/app
 
 ## 🔁 Nginx Reverse Proxy
 
-Create configuration:
+Create config:
 
 ```bash
 sudo nano /etc/nginx/sites-available/app
@@ -169,7 +218,7 @@ sudo systemctl restart nginx
 
 ---
 
-## 🔐 Security — SSL Setup
+## 🔐 SSL Configuration
 
 Install Certbot:
 
@@ -193,7 +242,7 @@ sudo certbot renew --dry-run
 
 ## 📊 Monitoring & Observability
 
-Check running services:
+Check services:
 
 ```bash
 pm2 status
@@ -205,16 +254,16 @@ View logs:
 pm2 logs
 ```
 
-Monitor server resources:
+Monitor resources:
 
 ```bash
 htop
 ```
 
 Suggested metrics:
-- CPU usage  
-- Memory consumption  
-- Disk capacity  
+- CPU  
+- Memory  
+- Disk  
 - Application uptime
 
 ---
@@ -225,29 +274,29 @@ Suggested metrics:
 - Backend API responding  
 - HTTPS active  
 - Dashboard functional  
-- Services running via PM2  
+- Services running via PM2
 
 ---
 
 ## 📚 Documentation Strategy
 
-All deployment steps, configuration details, and troubleshooting notes are recorded to ensure reproducibility and support long-term maintenance.
+All installation, configuration, and troubleshooting steps are recorded to ensure reproducibility and long-term maintenance.
 
 ---
 
 ## ✅ Implementation Result
 
-The data center monitoring application is successfully deployed on cloud infrastructure and accessible through a secure HTTPS connection.  
+The application is successfully deployed on cloud infrastructure and accessible securely via HTTPS.  
 The system enables centralized monitoring and supports scalable future development.
 
 ---
 
 ## 🔮 Future Improvements
 
-- Containerization using Docker  
-- CI/CD pipeline integration  
-- Advanced monitoring and alerting  
-- Horizontal scaling architecture  
+- Docker containerization  
+- CI/CD pipeline  
+- Advanced monitoring & alerting  
+- Scalable architecture
 
 ---
 
